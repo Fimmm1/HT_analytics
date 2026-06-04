@@ -22,8 +22,47 @@ from imblearn.over_sampling import SMOTE
 import shap
 import io
 import base64
+import subprocess
 import warnings
 warnings.filterwarnings('ignore')
+
+# ─── 한글 폰트 설치 및 설정 ───
+@st.cache_resource
+def setup_korean_font():
+    """Streamlit Cloud / Colab / 로컬 환경에서 한글 폰트 자동 설정"""
+    import matplotlib.font_manager as fm
+    import os
+    
+    # 1) 시스템에 나눔고딕 설치 시도
+    try:
+        subprocess.run(['apt-get', 'update', '-qq'], capture_output=True)
+        subprocess.run(['apt-get', 'install', '-y', '-qq', 'fonts-nanum'], capture_output=True)
+    except:
+        pass
+    
+    # 2) 설치된 한글 폰트 검색
+    fm._load_fontmanager(try_read_cache=False)
+    font_list = [f.name for f in fm.fontManager.ttflist]
+    
+    korean_fonts = ['NanumGothic', 'NanumBarunGothic', 'Malgun Gothic', 
+                    'AppleGothic', 'Noto Sans KR', 'Noto Sans CJK KR']
+    
+    selected_font = None
+    for kf in korean_fonts:
+        if kf in font_list:
+            selected_font = kf
+            break
+    
+    if selected_font:
+        plt.rcParams['font.family'] = selected_font
+    else:
+        # 폰트 못 찾으면 기본 설정
+        plt.rcParams['font.family'] = 'DejaVu Sans'
+    
+    plt.rcParams['axes.unicode_minus'] = False
+    return selected_font
+
+setup_korean_font()
 
 # ─── 페이지 설정 ───
 st.set_page_config(page_title="HR Attrition Analytics", page_icon="🏢", layout="wide", initial_sidebar_state="expanded")
@@ -294,24 +333,59 @@ def get_ai_action_plan(api_key, dept_name, dept_rate, dept_total, fi_text, conte
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
         
-        prompt = f"""당신은 HR 전략 컨설턴트입니다. 아래 분석 결과를 기반으로 
-{dept_name} 조직에 대한 맞춤 HR 액션 플랜을 한국어로 작성해주세요.
+        prompt = f"""당신은 글로벌 HR 컨설팅 펌(McKinsey, Mercer, Korn Ferry 수준)의 시니어 HR 전략 컨설턴트입니다.
+아래 데이터 분석 결과를 기반으로, {dept_name} 조직에 대한 전문적인 HR 액션 플랜을 작성해주세요.
 
+반드시 아래 제공된 데이터 수치를 근거로만 답변하고, 데이터에 없는 내용은 추측하지 마세요.
+
+═══════════════════════════════════════
+[데이터 분석 결과]
+═══════════════════════════════════════
 {context}
 
-{dept_name} 조직: 인원 {dept_total}명, 이탈률 {dept_rate}%
-주요 Feature Importance: {fi_text}
+[대상 조직 상세]
+- 조직명: {dept_name}
+- 인원: {dept_total}명
+- 이탈률: {dept_rate}%
+- 모델 Feature Importance Top 5: {fi_text}
 
-[출력 형식]
-1. 주요 이탈 원인 분석 (2-3가지)
-2. 긴급 조치 사항 (1-2가지)  
-3. 중장기 개선 방안 (2-3가지)
-4. 기대 효과
+═══════════════════════════════════════
+[출력 형식 - 아래 구조를 반드시 지켜주세요]
+═══════════════════════════════════════
+
+## 📊 {dept_name} 조직 이탈 분석 리포트
+
+### 1. 현황 진단
+- 해당 조직의 이탈률을 전사 평균과 비교하여 심각도를 평가
+- 이탈률 수치와 인원수를 근거로 비즈니스 영향도를 정량화
+
+### 2. 핵심 이탈 원인 분석 (데이터 근거 필수)
+- Feature Importance 결과를 근거로 이 조직에서 가장 영향력 있는 이탈 요인 3가지
+- 각 원인에 대해 [근거: 수치] 형태로 데이터를 반드시 인용
+
+### 3. 단기 액션 플랜 (0~3개월)
+| 우선순위 | 시책명 | 대상 | 실행 방법 | KPI |
+각 시책은 구체적이고 실행 가능해야 하며, 측정 가능한 KPI를 포함
+
+### 4. 중장기 액션 플랜 (3~12개월)
+| 우선순위 | 시책명 | 대상 | 실행 방법 | KPI |
+
+### 5. 기대 효과
+- 이탈률 감소 목표 (현재 → 목표)
+- 예상 비용 절감 효과 (1인당 채용비용 평균 급여의 50~200% 기준)
+- 조직 생산성 및 모라 개선 효과
+
+### ⚠️ 유의사항
+본 분석은 데이터 기반 의사결정을 지원하는 참고자료이며, 최종 판단은 HR 담당자의 현장 지식과 조직 상황을 고려하여 결정해야 합니다.
 """
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role":"user","content":prompt}],
-            max_tokens=1000
+            messages=[
+                {"role": "system", "content": "당신은 15년 경력의 글로벌 HR 전략 컨설턴트입니다. 데이터에 기반한 정량적 분석과 실행 가능한 전략을 제시합니다. 반드시 한국어로 답변하세요."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.3
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -332,9 +406,10 @@ def main():
     # ─── 사이드바 ───
     with st.sidebar:
         st.header("📂 데이터 업로드")
-        emp_file = st.file_uploader("직원 인사정보", type=['csv'], help="employee_data.csv")
-        survey_file = st.file_uploader("직원 설문조사", type=['csv'], help="engagement_survey.csv")
-        training_file = st.file_uploader("직원 교육정보", type=['csv'], help="training_data.csv")
+        st.caption("CSV 파일을 드래그하거나 Browse files로 업로드하세요")
+        emp_file = st.file_uploader("① 직원 인사정보", type=['csv'], help="employee_data.csv", key="emp_up")
+        survey_file = st.file_uploader("② 직원 설문조사", type=['csv'], help="employee_engagement_survey_data.csv", key="survey_up")
+        training_file = st.file_uploader("③ 직원 교육정보", type=['csv'], help="training_and_development_data.csv", key="training_up")
         
         all_up = emp_file and survey_file and training_file
         if all_up:
@@ -368,7 +443,34 @@ def main():
     # ─── 분석 전 안내 ───
     if st.session_state.results is None:
         st.markdown("### 👋 시작하기")
-        st.markdown("왼쪽 사이드바에서 **3개의 CSV 파일**을 업로드한 후 **AI 이탈 분석 시작** 버튼을 클릭하세요.")
+        st.markdown("""
+왼쪽 사이드바 또는 아래 영역에서 **3개의 CSV 파일**을 업로드한 후 **AI 이탈 분석 시작** 버튼을 클릭하세요.
+""")
+        
+        # 메인 화면 드래그앤드롭 업로드
+        st.markdown("---")
+        st.markdown("#### 📂 파일 업로드")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            main_emp = st.file_uploader("① 직원 인사정보 (employee_data.csv)", type=['csv'], key="main_emp")
+            if main_emp and not emp_file:
+                st.session_state['emp_up'] = main_emp
+        with c2:
+            main_survey = st.file_uploader("② 직원 설문조사 (engagement_survey.csv)", type=['csv'], key="main_survey")
+            if main_survey and not survey_file:
+                st.session_state['survey_up'] = main_survey
+        with c3:
+            main_training = st.file_uploader("③ 직원 교육정보 (training_data.csv)", type=['csv'], key="main_training")
+            if main_training and not training_file:
+                st.session_state['training_up'] = main_training
+        
+        # 업로드 상태 표시
+        all_files = (emp_file or main_emp) and (survey_file or main_survey) and (training_file or main_training)
+        if all_files:
+            st.success("✅ 3개 파일 업로드 완료! 사이드바의 **AI 이탈 분석 시작** 버튼을 클릭하세요.")
+        
+        st.markdown("---")
+        st.markdown("#### 📋 분석 파이프라인")
         st.markdown("""
 업로드하면 자동으로 수행됩니다:
 1. **데이터 전처리** — 결측치 처리, 피처 엔지니어링, 테이블 통합
@@ -378,10 +480,8 @@ def main():
 5. **개별 직원 스코어링** — 이탈 위험도 점수 산출
 6. **HR 액션 플랜** — ChatGPT API 연동 자동 생성
 """)
-        c1,c2,c3 = st.columns(3)
-        c1.info("📁 **employee_data.csv**\n\n직원 인사정보")
-        c2.info("📁 **engagement_survey.csv**\n\n직원 설문조사")
-        c3.info("📁 **training_data.csv**\n\n교육 훈련 정보")
+        
+        st.info("⚠️ **데이터 요구사항:** 직원 인사정보에 EmpID, DepartmentType, Title, EmployeeStatus 컬럼이 필요합니다.")
         return
     
     # ═══════════════════════════════════════════════════════════
