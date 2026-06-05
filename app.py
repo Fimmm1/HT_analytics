@@ -8,11 +8,11 @@ HR Attrition Analytics - Streamlit Dashboard (현업용)
 실행: streamlit run app.py
 ========================================================
 """
+import streamlit as st
 
 # ─── 페이지 설정 ───
 st.set_page_config(page_title="HR Attrition Analytics", page_icon="🏢", layout="wide", initial_sidebar_state="expanded")
 
-import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
