@@ -9,6 +9,9 @@ HR Attrition Analytics - Streamlit Dashboard (현업용)
 ========================================================
 """
 
+# ─── 페이지 설정 ───
+st.set_page_config(page_title="HR Attrition Analytics", page_icon="🏢", layout="wide", initial_sidebar_state="expanded")
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -64,8 +67,7 @@ def setup_korean_font():
 
 setup_korean_font()
 
-# ─── 페이지 설정 ───
-st.set_page_config(page_title="HR Attrition Analytics", page_icon="🏢", layout="wide", initial_sidebar_state="expanded")
+
 
 st.markdown("""
 <style>
