@@ -239,8 +239,6 @@ def generate_pdf(R, sel_dept):
     pdf.cell(0,8,f'Total Employees: {total:,} | Attrition Rate: {rate}%',align='C',new_x="LMARGIN",new_y="NEXT")
     pdf.ln(20)
     pdf.set_font('Helvetica','',10)
-    pdf.cell(0,8,'AI & SW Graduate School, Sogang University',align='C',new_x="LMARGIN",new_y="NEXT")
-    pdf.cell(0,8,'Kim Hyuntae (A74032)',align='C',new_x="LMARGIN",new_y="NEXT")
 
     # ─── Executive Summary ───
     pdf.add_page()
