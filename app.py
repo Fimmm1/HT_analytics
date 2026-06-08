@@ -62,6 +62,7 @@ def run_pipeline(emp_bytes, survey_bytes, training_bytes):
     merged = merged.drop(columns=['Employee ID_x','Employee ID_y'], errors='ignore')
     progress.progress(35, text="✅ 데이터 통합 완료")
 
+    # ─── 칼럼 추가 시 encode_map, feature_cols, feature_labels 에 칼럼 추가하고 데이터 전처리가 필요하다면 바로 위에서 처리 ───
     encode_map = {'DepartmentType':'Dept_enc','Title':'Title_enc','GenderCode':'Gender_enc','EmployeeType':'EmpType_enc','Performance Score':'Perf_enc'}
     for col, enc in encode_map.items():
         merged[enc] = LabelEncoder().fit_transform(merged[col].astype(str))
