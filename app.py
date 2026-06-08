@@ -232,7 +232,7 @@ def main():
             else: tl=['전체']+sorted(R['cross_stats'][R['cross_stats']['DepartmentType']==sel_dept]['Title'].unique().tolist())
             sel_title=st.selectbox("Job Title", tl, key='sel_title')
             st.divider(); st.header("⚙️ AI 설정")
-            api_key=st.text_input("OpenAI API Key", type="password", placeholder="sk-...", key='api_key')
+            api_key=st.text_input("OpenAI API Key", type="password", placeholder="sk-...", key='api_key', value=st.secrets.get("OPENAI_API_KEY",""))
 
     if st.session_state.results is None:
         st.markdown("### 👋 시작하기")
