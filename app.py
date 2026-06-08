@@ -175,7 +175,7 @@ def generate_pdf(R, sel_dept):
     pdf.set_font('Helvetica','',9)
     fi_src = R['dept_fi'].get(sel_dept, R['fi_df']) if sel_dept!='All' else R['fi_df']
     for _,r in fi_src.head(5).iterrows(): pdf.cell(0,6,f"  {r['feature']}: {r['importance']:.4f}",new_x="LMARGIN",new_y="NEXT")
-    return pdf.output()
+    return bytes(pdf.output())
 
 # ═══════════════════════════════════════════════════════════════
 # ChatGPT
