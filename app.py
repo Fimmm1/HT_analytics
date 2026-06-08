@@ -91,8 +91,20 @@ def run_pipeline(emp_bytes, survey_bytes, training_bytes):
     elif shap_vals.ndim == 3: shap_c1 = shap_vals[:,:,1]
     else: shap_c1 = shap_vals
 
-    progress.progress(75, text="🏢 조직별 분석 중...")
+    # ─── 원본 데이터 기반 SHAP (조직별 필터링용) ───
+    X_orig = merged[feature_cols].fillna(0)
+    sample_size = min(800, len(X_orig))
+    sample_idx = np.random.RandomState(42).choice(len(X_orig), sample_size, replace=False)
+    X_orig_sample = X_orig.iloc[sample_idx]
+    X_orig_sample_df = pd.DataFrame(X_orig_sample.values, columns=feature_labels)
+    orig_depts = merged['DepartmentType'].iloc[sample_idx].values
+    orig_shap = explainer.shap_values(X_orig_sample.values)
+    if isinstance(orig_shap, list): orig_shap_c1 = orig_shap[1]
+    elif orig_shap.ndim == 3: orig_shap_c1 = orig_shap[:,:,1]
+    else: orig_shap_c1 = orig_shap
 
+    progress.progress(75, text="🏢 조직별 분석 중...")
+    
     # ─── 조직별 Feature Importance (퇴직자 20명 이상 조직만) ───
     dept_fi = {}
     for dept in emp['DepartmentType'].unique():
@@ -143,8 +155,8 @@ def run_pipeline(emp_bytes, survey_bytes, training_bytes):
     return {'emp':emp,'merged':merged,'exited':exited,'rf':rf,'fi_df':fi_df,'cm':cm,'report':report,'auc':auc,
             'shap_c1':shap_c1,'X_shap_df':X_shap_df,'dept_stats':dept_stats,'title_stats':title_stats,
             'cross_stats':cross_stats,'yearly_df':yearly_df,'survey_compare':survey_compare,
-            'feature_labels':feature_labels,'dept_fi':dept_fi,'dept_survey':dept_survey}
-
+            'feature_labels':feature_labels,'dept_fi':dept_fi,'dept_survey':dept_survey,
+            'orig_shap_c1':orig_shap_c1,'X_orig_sample_df':X_orig_sample_df,'orig_depts':orig_depts}
 # ═══════════════════════════════════════════════════════════════
 # PDF
 # ═══════════════════════════════════════════════════════════════
@@ -604,11 +616,26 @@ def main():
                 'Diff': diff.values
             }), use_container_width=True, hide_index=True)
 
-        # SHAP
-        st.subheader("📊 SHAP Summary Plot (전체 모델)")
-        fig,ax=plt.subplots(figsize=(12,6))
-        shap.summary_plot(R['shap_c1'],R['X_shap_df'],plot_type='dot',show=False)
-        plt.title('SHAP Summary Plot',fontweight='bold'); plt.tight_layout(); st.pyplot(fig); plt.close()
+      # SHAP (조직별 필터링 가능)
+        if sel_dept != '전체':
+            st.subheader(f"📊 SHAP Summary Plot ({sel_dept})")
+            dept_mask = R['orig_depts'] == sel_dept
+            if dept_mask.sum() >= 10:
+                shap_filtered = R['orig_shap_c1'][dept_mask]
+                X_filtered = R['X_orig_sample_df'][dept_mask]
+                fig,ax=plt.subplots(figsize=(12,6))
+                shap.summary_plot(shap_filtered, X_filtered, plot_type='dot', show=False)
+                plt.title(f'SHAP Summary - {sel_dept}', fontweight='bold'); plt.tight_layout(); st.pyplot(fig); plt.close()
+            else:
+                st.caption(f"⚠️ {sel_dept} 샘플이 10건 미만이어서 전체 SHAP을 표시합니다.")
+                fig,ax=plt.subplots(figsize=(12,6))
+                shap.summary_plot(R['shap_c1'],R['X_shap_df'],plot_type='dot',show=False)
+                plt.title('SHAP Summary Plot (All)',fontweight='bold'); plt.tight_layout(); st.pyplot(fig); plt.close()
+        else:
+            st.subheader("📊 SHAP Summary Plot (전체)")
+            fig,ax=plt.subplots(figsize=(12,6))
+            shap.summary_plot(R['shap_c1'],R['X_shap_df'],plot_type='dot',show=False)
+            plt.title('SHAP Summary Plot (All)',fontweight='bold'); plt.tight_layout(); st.pyplot(fig); plt.close()
 
         # 교차 이탈률: 조직별 필터링
         if sel_dept != '전체':
