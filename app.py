@@ -208,7 +208,7 @@ def get_ai_plan(api_key, dept, rate, total, fi_text, ctx):
 # ═══════════════════════════════════════════════════════════════
 def main():
     st.markdown('<h1 class="main-header">🏢 HR Attrition Analytics</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">조직·직무별 이탈 패턴 분석 및 HR 액션 플랜 자동화 · AI·SW대학원 김현태 / A74032</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">조직·직무별 이탈 패턴 분석 및 HR 액션 플랜 자동화</p>', unsafe_allow_html=True)
     st.divider()
     if 'results' not in st.session_state: st.session_state.results = None
 
@@ -227,12 +227,12 @@ def main():
         if st.session_state.results:
             st.divider(); st.header("🔍 필터"); R=st.session_state.results
             depts=['전체']+sorted(R['dept_stats']['DepartmentType'].tolist())
-            sel_dept=st.selectbox("Department", depts)
+            sel_dept=st.selectbox("Department", depts, key='sel_dept')
             if sel_dept=='전체': tl=['전체']+sorted(R['title_stats']['Title'].tolist())
             else: tl=['전체']+sorted(R['cross_stats'][R['cross_stats']['DepartmentType']==sel_dept]['Title'].unique().tolist())
-            sel_title=st.selectbox("Job Title", tl)
+            sel_title=st.selectbox("Job Title", tl, key='sel_title')
             st.divider(); st.header("⚙️ AI 설정")
-            api_key=st.text_input("OpenAI API Key", type="password", placeholder="sk-...")
+            api_key=st.text_input("OpenAI API Key", type="password", placeholder="sk-...", key='api_key')
 
     if st.session_state.results is None:
         st.markdown("### 👋 시작하기")
