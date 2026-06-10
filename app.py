@@ -634,9 +634,9 @@ def main():
                 plt.title('SHAP Summary Plot (All)',fontweight='bold'); plt.tight_layout(); st.pyplot(fig); plt.close()
         else:
             st.subheader("📊 SHAP Summary Plot (전체)")
-            fig,ax=plt.subplots(figsize=(12,6))
-            shap.summary_plot(R['shap_c1'],R['X_shap_df'],plot_type='dot',show=False)
-            plt.title('SHAP Summary Plot (All)',fontweight='bold'); plt.tight_layout(); st.pyplot(fig); plt.close()
+            plt.figure(figsize=(12,6))
+            shap.summary_plot(R['orig_shap_c1'],R['X_orig_sample_df'],plot_type='dot',show=False)
+            st.pyplot(plt.gcf()); plt.close('all')
 
         # 교차 이탈률: 조직별 필터링
         if sel_dept != '전체':
